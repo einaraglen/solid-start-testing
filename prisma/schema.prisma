@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String        @id
+  name     String        @unique
+  email    String        @unique
+  member   BoardMember[]
+  comments Comment[]
+  ratings  Rating[]
+  posts    Post[]
+  boards   Board[]
+  replies  Reply[]
+  created  DateTime      @default(now())
+}
+
+model Board {
+  name        String        @id @unique
+  description String
+  user_id     String
+  user        User          @relation(fields: [user_id], references: [id])
+  members     BoardMember[]
+  posts       Post[]
+  tags        BoardTag[]
+  created     DateTime      @default(now())
+}
+
+model Post {
+  id         String    @id @default(uuid())
+  board_name String
+  user_id    String
+  title      String
+  content    String
+  user       User      @relation(fields: [user_id], references: [id])
+  board      Board     @relation(fields: [board_name], references: [name])
+  comments   Comment[]
+  ratings    Rating[]
+  updated    DateTime? @updatedAt
+  created    DateTime  @default(now())
+}
+
+model Comment {
+  id      String    @id @default(uuid())
+  post_id String
+  user_id String
+  content String
+  user    User      @relation(fields: [user_id], references: [id])
+  post    Post      @relation(fields: [post_id], references: [id])
+  replies Reply[]
+  ratings Rating[]
+  updated DateTime? @updatedAt
+  created DateTime  @default(now())
+}
+
+model Reply {
+  id         String   @id @default(uuid())
+  comment_id String?
+  user_id    String
+  content    String
+  user       User     @relation(fields: [user_id], references: [id])
+  comment    Comment  @relation(fields: [commentId], references: [id])
+  created    DateTime @default(now())
+  commentId  String
+}
+
+model Rating {
+  id         String   @id @default(uuid())
+  user_id    String
+  post_id    String?
+  comment_id String?
+  positive   Boolean
+  comment    Comment? @relation(fields: [comment_id], references: [id])
+  post       Post?    @relation(fields: [post_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, post_id])
+  @@unique([user_id, comment_id])
+}
+
+model Tag {
+  id        String     @id @default(uuid())
+  value     String
+  boards    BoardTag[]
+  created   DateTime   @default(now())
+  boardName String?
+}
+
+model BoardTag {
+  tag_id     String
+  board_name String
+  tag        Tag      @relation(fields: [tag_id], references: [id])
+  board      Board    @relation(fields: [board_name], references: [name])
+  created    DateTime @default(now())
+
+  @@id([tag_id, board_name])
+}
+
+model BoardMember {
+  user_id    String
+  board_name String
+  user       User     @relation(fields: [user_id], references: [id])
+  board      Board    @relation(fields: [board_name], references: [name])
+  created    DateTime @default(now())
+
+  @@id([user_id, board_name])
+}
